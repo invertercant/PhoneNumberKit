@@ -170,8 +170,14 @@ open class PhoneNumberTextField: UITextField, UITextFieldDelegate {
 
     // MARK: Status
 
-    public var currentRegion: String {
-        return self.partialFormatter.currentRegion
+//    public var currentRegion: String {
+//        return self.partialFormatter.currentRegion
+//    }
+    
+    public lazy var currentRegion: String = defaultRegion{
+        didSet{
+            sendActions(for: .valueChanged)
+        }
     }
 
     public var nationalNumber: String {
@@ -467,6 +473,7 @@ open class PhoneNumberTextField: UITextField, UITextFieldDelegate {
         // but only when the withFlag is true as to not confuse the user who don't see the flag
         if withFlag == true
         {
+            self.currentRegion = getRegionCode(phoneNumberString: modifiedTextField) ?? defaultRegion
             self._defaultRegion = self.currentRegion
             self.partialFormatter.defaultRegion = self.currentRegion
             self.updateFlag()
@@ -474,6 +481,48 @@ open class PhoneNumberTextField: UITextField, UITextFieldDelegate {
         }
 
         return false
+    }
+    
+    //let kzTestString = "+770"
+    //let ruTestString = "+790"
+    //let anguilaTestString = "+1264"
+    //let usTestString = "+1111"
+    func getRegionCode(phoneNumberString: String) -> String?{
+        
+        var normalizedString = phoneNumberString.replacingOccurrences(of: " ", with: "")
+        normalizedString = normalizedString.replacingOccurrences(of: "-", with: "")
+        
+        guard normalizedString.hasPrefix("+") else {return nil}
+        guard normalizedString.filter({$0 == "+"}).count == 1 else {return nil}
+        guard normalizedString.count >= 2 else {return nil}
+        
+        let partialFormatter = PartialFormatter()
+        
+        //extractCountryCallingCode() return nothing but set current metadata implicitly
+        //current metadata reflects country code
+        _ = partialFormatter.extractCountryCallingCode(normalizedString)
+        
+        guard let currentMetadata = partialFormatter.currentMetadata else {return nil}
+        
+        let countryCode = currentMetadata.countryCode
+        
+        let phoneNumberKit = PhoneNumberKit()
+        let parseManager = phoneNumberKit.parseManager
+        
+        var trimmingNationationalNumber = normalizedString.trimmingCharacters(in: CharacterSet.init(arrayLiteral: "+"))
+        
+        guard trimmingNationationalNumber.count >= String(currentMetadata.countryCode).count else {
+            return currentMetadata.codeID
+        }
+        
+        trimmingNationationalNumber.removeFirst(String(currentMetadata.countryCode).count)
+        
+        guard let uintNationalNumber = UInt64(trimmingNationationalNumber) else {return currentMetadata.codeID}
+        
+        let regionCode = parseManager.getRegionCode(of: uintNationalNumber, countryCode: countryCode, leadingZero: false) ?? currentMetadata.codeID
+        
+        return regionCode
+        
     }
 
     // MARK: UITextfield Delegate
