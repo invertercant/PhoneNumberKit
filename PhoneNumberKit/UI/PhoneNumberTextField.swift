@@ -452,6 +452,10 @@ open class PhoneNumberTextField: UITextField, UITextFieldDelegate {
         }
         let rawNumberString = String(filteredCharacters)
 
+        //implicitly define current metadata
+        self.partialFormatter.extractCountryCallingCode(rawNumberString)
+        self.partialFormatter.defaultMetadata = self.partialFormatter.currentMetadata
+        
         let formattedNationalNumber = self.partialFormatter.formatPartial(rawNumberString as String)
         var selectedTextRange: NSRange?
 
@@ -471,9 +475,11 @@ open class PhoneNumberTextField: UITextField, UITextFieldDelegate {
 
         // we change the default region to be the one most recently typed
         // but only when the withFlag is true as to not confuse the user who don't see the flag
+        //let regionCode = getRegionCode(phoneNumberString: modifiedTextField)
+        //let showFlag = regionCode != nil && self.withFlag
         if withFlag == true
         {
-            self.currentRegion = getRegionCode(phoneNumberString: modifiedTextField) ?? defaultRegion
+            self.currentRegion = getRegionCode(phoneNumberString: modifiedTextField) ?? ""
             self._defaultRegion = self.currentRegion
             self.partialFormatter.defaultRegion = self.currentRegion
             self.updateFlag()
