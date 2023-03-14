@@ -173,11 +173,7 @@ open class PhoneNumberTextField: UITextField, UITextFieldDelegate {
 
     // MARK: Status
     
-    public lazy var currentRegion: String = defaultRegion{
-        didSet{
-            sendActions(for: .valueChanged)
-        }
-    }
+    public lazy var currentRegion: String = ""
 
     public var nationalNumber: String {
         let rawNumber = self.text ?? String()
@@ -429,6 +425,8 @@ open class PhoneNumberTextField: UITextField, UITextFieldDelegate {
 
     open func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
         
+        var result: Bool = false
+        
         if containsInternationalPrefix{
             if textField.text?.count == 1 && string.count == 0, let firstChar = textField.text?.first, PhoneNumberConstants.plusChars.contains(where: {$0 == firstChar}){
                 return false
@@ -462,8 +460,14 @@ open class PhoneNumberTextField: UITextField, UITextFieldDelegate {
         let rawNumberString = String(filteredCharacters)
 
         //implicitly define current metadata
-        self.partialFormatter.extractCountryCallingCode(rawNumberString)
-        self.partialFormatter.defaultMetadata = self.partialFormatter.currentMetadata
+        let helperPartialFormatter = PartialFormatter()
+        helperPartialFormatter.currentMetadata = nil
+        helperPartialFormatter.extractCountryCallingCode(rawNumberString)
+        if helperPartialFormatter.currentMetadata != nil{
+            self.partialFormatter.currentMetadata = helperPartialFormatter.currentMetadata
+            self.partialFormatter.defaultMetadata = helperPartialFormatter.currentMetadata
+        }
+        //self.partialFormatter.defaultMetadata = self.partialFormatter.currentMetadata
         
         let formattedNationalNumber = self.partialFormatter.formatPartial(rawNumberString as String)
         var selectedTextRange: NSRange?
@@ -472,11 +476,13 @@ open class PhoneNumberTextField: UITextField, UITextFieldDelegate {
         if range.length == 1, string.isEmpty, nonNumericRange {
             selectedTextRange = self.selectionRangeForNumberReplacement(textField: textField, formattedText: modifiedTextField)
             textField.text = modifiedTextField
-        } else {
+        } else if helperPartialFormatter.currentMetadata != nil {
             selectedTextRange = self.selectionRangeForNumberReplacement(textField: textField, formattedText: formattedNationalNumber)
             textField.text = formattedNationalNumber
         }
-        sendActions(for: .editingChanged)
+        else{
+            result = true
+        }
         if let selectedTextRange = selectedTextRange, let selectionRangePosition = textField.position(from: beginningOfDocument, offset: selectedTextRange.location) {
             let selectionRange = textField.textRange(from: selectionRangePosition, to: selectionRangePosition)
             textField.selectedTextRange = selectionRange
@@ -484,8 +490,6 @@ open class PhoneNumberTextField: UITextField, UITextFieldDelegate {
 
         // we change the default region to be the one most recently typed
         // but only when the withFlag is true as to not confuse the user who don't see the flag
-        //let regionCode = getRegionCode(phoneNumberString: modifiedTextField)
-        //let showFlag = regionCode != nil && self.withFlag
         if withFlag == true
         {
             self.currentRegion = getRegionCode(phoneNumberString: modifiedTextField) ?? ""
@@ -495,7 +499,7 @@ open class PhoneNumberTextField: UITextField, UITextFieldDelegate {
             self.updatePlaceholder()
         }
 
-        return false
+        return result
     }
     
     //let kzTestString = "+770"
@@ -512,6 +516,7 @@ open class PhoneNumberTextField: UITextField, UITextFieldDelegate {
         guard normalizedString.count >= 2 else {return nil}
         
         let partialFormatter = PartialFormatter()
+        partialFormatter.currentMetadata = nil
         
         //extractCountryCallingCode() return nothing but set current metadata implicitly
         //current metadata reflects country code
