@@ -90,6 +90,9 @@ open class PhoneNumberTextField: UITextField, UITextFieldDelegate {
             }
         }
     }
+    
+    public var containsInternationalPrefix: Bool = true
+    public var internationalPrefix: String = "+"
 
     #if compiler(>=5.1)
     /// Available on iOS 13 and above just.
@@ -169,10 +172,6 @@ open class PhoneNumberTextField: UITextField, UITextFieldDelegate {
     }
 
     // MARK: Status
-
-//    public var currentRegion: String {
-//        return self.partialFormatter.currentRegion
-//    }
     
     public lazy var currentRegion: String = defaultRegion{
         didSet{
@@ -273,6 +272,9 @@ open class PhoneNumberTextField: UITextField, UITextFieldDelegate {
     func setup() {
         self.autocorrectionType = .no
         self.keyboardType = .phonePad
+        if containsInternationalPrefix{
+            text = internationalPrefix
+        }
         super.delegate = self
     }
 
@@ -426,6 +428,13 @@ open class PhoneNumberTextField: UITextField, UITextFieldDelegate {
     }
 
     open func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
+        
+        if containsInternationalPrefix{
+            if textField.text?.count == 1 && string.count == 0, let firstChar = textField.text?.first, PhoneNumberConstants.plusChars.contains(where: {$0 == firstChar}){
+                return false
+            }
+        }
+        
         // This allows for the case when a user autocompletes a phone number:
         if range == NSRange(location: 0, length: 0) && string.isBlank {
             return true
