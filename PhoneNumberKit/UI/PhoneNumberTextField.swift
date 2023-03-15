@@ -28,6 +28,7 @@ open class PhoneNumberTextField: UITextField, UITextFieldDelegate {
             }
             NotificationCenter.default.post(name: UITextField.textDidChangeNotification, object: self)
             self.updateFlag()
+            sendActions(for: .editingChanged)
         }
         get {
             return super.text
@@ -467,7 +468,6 @@ open class PhoneNumberTextField: UITextField, UITextFieldDelegate {
             self.partialFormatter.currentMetadata = helperPartialFormatter.currentMetadata
             self.partialFormatter.defaultMetadata = helperPartialFormatter.currentMetadata
         }
-        //self.partialFormatter.defaultMetadata = self.partialFormatter.currentMetadata
         
         let formattedNationalNumber = self.partialFormatter.formatPartial(rawNumberString as String)
         var selectedTextRange: NSRange?
