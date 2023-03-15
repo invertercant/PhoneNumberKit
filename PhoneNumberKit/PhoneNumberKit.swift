@@ -343,3 +343,15 @@ extension PhoneNumberKit {
     }
 }
 #endif
+
+extension PhoneNumberKit{
+    
+    //phoneNumberPrefix - full msisdn or prefix part
+    static public func countryISOCode(phoneNumberPrefix: String) -> String?{
+        let partialFormatter = PartialFormatter()
+        partialFormatter.currentMetadata = nil
+        _ = partialFormatter.extractCountryCallingCode(phoneNumberPrefix)
+        return partialFormatter.currentMetadata?.codeID
+    }
+    
+}
